@@ -71,9 +71,7 @@ async def test_clone_repository(tmp_path: Path) -> None:
     assert result == destination
     assert destination.exists()
     assert (destination / "README.md").exists()
-    assert (destination / "README.md").read_text(encoding="utf-8") == (
-        "# Test Repository\n"
-    )
+    assert (destination / "README.md").read_text(encoding="utf-8") == ("# Test Repository\n")
     assert (destination / ".git").exists()
 
 

@@ -10,7 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PDUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from . import Base
+from .base import Base
 
 
 class Repository(Base):
