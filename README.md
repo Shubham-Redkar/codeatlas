@@ -216,34 +216,28 @@ flowchart TD
 
 ```text
 codeatlas/
-|
-+-- backend/
-|   +-- app/
-|   |   +-- api/
-|   |   +-- database/
-|   |   +-- graph/
-|   |   +-- ingestion/
-|   |   +-- llm/
-|   |   +-- parser/
-|   |   +-- retrieval/
-|   |   +-- services/
-|   |   +-- main.py
-|   |
-|   +-- pyproject.toml
-|   +-- uv.lock
-|
-+-- frontend/
-|
-+-- docs/
-|
-+-- evaluation/
-|
-+-- .env.example
-+-- .gitignore
-+-- docker-compose.yml
-+-- LICENSE
-+-- Makefile
-+-- README.md
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── database/
+│   │   ├── graph/
+│   │   ├── ingestion/
+│   │   ├── llm/
+│   │   ├── parser/
+│   │   ├── retrieval/
+│   │   ├── services/
+│   │   └── main.py
+│   ├── pyproject.toml
+│   └── uv.lock
+├── frontend/
+├── docs/
+├── evaluation/
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── LICENSE
+├── Makefile
+└── README.md
 ```
 
 ---
@@ -272,10 +266,10 @@ flowchart LR
 - [x] Project structure
 - [x] FastAPI application
 - [x] Health endpoint
-- [ ] Application configuration
-- [ ] PostgreSQL setup
-- [ ] SQLAlchemy async database layer
-- [ ] Alembic migrations
+- [x] Application configuration
+- [x] PostgreSQL setup
+- [x] SQLAlchemy async database layer
+- [x] Alembic migrations
 
 ### Phase 2 — Repository Ingestion
 
