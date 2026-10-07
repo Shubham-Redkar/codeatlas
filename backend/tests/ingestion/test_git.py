@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+
 from app.exceptions import GitCloneError
 from app.ingestion.git import clone_repository
 
