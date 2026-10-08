@@ -38,6 +38,7 @@ def extract_symbols(
         "javascript": {
             "class_declaration": SymbolKind.CLASS,
             "function_declaration": SymbolKind.FUNCTION,
+            "method_definition": SymbolKind.FUNCTION,
         },
     }
 
