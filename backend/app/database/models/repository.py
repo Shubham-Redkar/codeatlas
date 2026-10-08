@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -8,9 +9,12 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID as PDUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
+
+if TYPE_CHECKING:
+    from .repository_file import RepositoryFile
 
 
 class Repository(Base):
@@ -53,4 +57,9 @@ class Repository(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    files: Mapped[list["RepositoryFile"]] = relationship(
+        back_populates="repository",
+        cascade="all, delete-orphan",
     )
