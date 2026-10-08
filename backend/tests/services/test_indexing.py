@@ -44,11 +44,18 @@ async def test_index_repository(
         encoding="utf-8",
     )
 
+    javascript_file = source_directory / "app.js"
+    javascript_file.write_text(
+        "console.log('hello');\n",
+        encoding="utf-8",
+    )
+
     indexed_changed = RepositoryFile(
         repository_id=repository.id,
         path="src/changed.py",
         content_hash="old-hash",
         size_bytes=1,
+        language="python",
     )
 
     unchanged_hash = calculate_file_hash(unchanged_file)
@@ -57,6 +64,7 @@ async def test_index_repository(
         path="src/unchanged.py",
         content_hash=unchanged_hash,
         size_bytes=1,
+        language="python",
     )
 
     indexed_deleted = RepositoryFile(
@@ -86,6 +94,7 @@ async def test_index_repository(
     changes_by_path = {change.path: change.change_type.value for change in changes}
 
     assert changes_by_path == {
+        "src/app.js": "new",
         "src/changed.py": "changed",
         "src/deleted.py": "deleted",
         "src/new.py": "new",
@@ -100,18 +109,26 @@ async def test_index_repository(
     indexed_files = {file.path: file for file in result.scalars()}
 
     assert set(indexed_files) == {
+        "src/app.js",
         "src/changed.py",
         "src/new.py",
         "src/unchanged.py",
     }
 
+    assert indexed_files["src/app.js"].content_hash == calculate_file_hash(javascript_file)
+    assert indexed_files["src/app.js"].size_bytes == javascript_file.stat().st_size
+    assert indexed_files["src/app.js"].language == "javascript"
+
     assert indexed_files["src/new.py"].content_hash == calculate_file_hash(new_file)
     assert indexed_files["src/new.py"].size_bytes == new_file.stat().st_size
+    assert indexed_files["src/new.py"].language == "python"
 
     assert indexed_files["src/changed.py"].content_hash == calculate_file_hash(changed_file)
     assert indexed_files["src/changed.py"].size_bytes == changed_file.stat().st_size
+    assert indexed_files["src/changed.py"].language == "python"
 
     assert indexed_files["src/unchanged.py"].content_hash == unchanged_hash
     assert indexed_files["src/unchanged.py"].size_bytes == 1
+    assert indexed_files["src/unchanged.py"].language == "python"
 
     assert "src/deleted.py" not in indexed_files

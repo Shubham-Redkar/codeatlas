@@ -8,6 +8,7 @@ from .indexing import (
     calculate_file_hash,
     compare_files,
 )
+from .languages import DetectedLanguage, detect_language
 
 __all__ = [
     "discover_files",
@@ -18,4 +19,6 @@ __all__ = [
     "build_current_file_state",
     "calculate_file_hash",
     "compare_files",
+    "DetectedLanguage",
+    "detect_language",
 ]
