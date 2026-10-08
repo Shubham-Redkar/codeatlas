@@ -49,10 +49,12 @@ function createUser() {
 
     assert [symbol.name for symbol in symbols] == [
         "User",
+        "getName",
         "createUser",
     ]
 
     assert [symbol.kind for symbol in symbols] == [
         SymbolKind.CLASS,
+        SymbolKind.FUNCTION,
         SymbolKind.FUNCTION,
     ]
