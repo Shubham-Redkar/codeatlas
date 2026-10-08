@@ -1,3 +1,4 @@
+from .ast import extract_ast
 from .tree_sitter import (
     SupportedLanguage,
     create_parser,
@@ -5,6 +6,7 @@ from .tree_sitter import (
 )
 
 __all__ = [
+    "extract_ast",
     "SupportedLanguage",
     "create_parser",
     "parse_source",
