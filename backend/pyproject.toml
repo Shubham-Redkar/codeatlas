@@ -1,5 +1,5 @@
 [project]
-name = "backend"
+name = "codeatlas"
 version = "0.1.0"
 description = "AI-powered codebase intelligence tool that combines AST analysis, dependency graphs, semantic retrieval, and LLM reasoning to help developers understand and navigate unfamiliar repositories."
 readme = "README.md"
