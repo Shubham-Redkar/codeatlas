@@ -281,11 +281,11 @@ flowchart LR
 
 ### Phase 3 — Code Intelligence
 
-- [ ] Tree-sitter integration
-- [ ] AST extraction
-- [ ] Symbol extraction
-- [ ] Import analysis
-- [ ] Function and class relationships
+- [x] Tree-sitter integration
+- [x] AST extraction
+- [x] Symbol extraction
+- [x] Import analysis
+- [x] Function and class relationships
 
 ### Phase 4 — Code Graph
 
