@@ -1,4 +1,5 @@
 from .ast import extract_ast
+from .imports import Import, extract_imports
 from .symbols import (
     Symbol,
     SymbolKind,
@@ -12,6 +13,8 @@ from .tree_sitter import (
 
 __all__ = [
     "extract_ast",
+    "Import",
+    "extract_imports",
     "Symbol",
     "SymbolKind",
     "extract_symbols",
