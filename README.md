@@ -273,11 +273,11 @@ flowchart LR
 
 ### Phase 2 — Repository Ingestion
 
-- [ ] Git repository ingestion
-- [ ] Repository file discovery
-- [ ] File filtering
-- [ ] Repository metadata
-- [ ] Incremental indexing
+- [x] Git repository ingestion
+- [x] Repository file discovery
+- [x] File filtering
+- [x] Repository metadata
+- [x] Incremental indexing
 
 ### Phase 3 — Code Intelligence
 
