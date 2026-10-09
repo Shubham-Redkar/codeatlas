@@ -274,10 +274,14 @@ flowchart LR
 ### Phase 2 — Repository Ingestion
 
 - [x] Git repository ingestion
+- [x] Repository creation API (POST /api/v1/repositories)
 - [x] Repository file discovery
 - [x] File filtering
 - [x] Repository metadata
-- [x] Incremental indexing
+- [x] File hashing and incremental indexing
+- [x] Detect and store repository file language metadata
+- [x] Database migration for file-language metadata
+- [x] Automated ingestion and API tests
 
 ### Phase 3 — Code Intelligence
 
