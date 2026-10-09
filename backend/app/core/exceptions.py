@@ -8,3 +8,7 @@ class GitError(CodeAtlasError):
 
 class GitCloneError(GitError):
     """Raised when a Git repository cannot be cloned."""
+
+
+class RepositoryPathError(CodeAtlasError):
+    """Raised when a repository path is invalid."""

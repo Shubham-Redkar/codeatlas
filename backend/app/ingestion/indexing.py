@@ -30,7 +30,7 @@ def calculate_file_hash(
     hasher = hashlib.sha256()
 
     with path.open("rb") as file:
-        for chunk in iter(lambda: file.read(8192), b""):
+        for chunk in iter(lambda: file.read(65536), b""):
             hasher.update(chunk)
 
     return hasher.hexdigest()
@@ -75,5 +75,8 @@ def build_current_file_state(
     Build repository-relative file paths and their content hashes.
     """
     return {
-        path.relative_to(repository_path).as_posix(): calculate_file_hash(path) for path in files
+        path.relative_to(repository_path).as_posix(): calculate_file_hash(
+            path,
+        )
+        for path in files
     }
