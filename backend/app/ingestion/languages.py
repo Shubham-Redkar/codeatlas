@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 class DetectedLanguage(StrEnum):
-    """Supported programming languages detected by CodeAtlas."""
+    """Programming languages supported by CodeAtlas."""
 
     PYTHON = "python"
     JAVASCRIPT = "javascript"

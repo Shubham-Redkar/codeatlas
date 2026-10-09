@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+
+from app.core.exceptions import RepositoryPathError
 from app.ingestion.files import discover_files
 
 
@@ -68,3 +71,29 @@ def test_discover_files_nested_directories(tmp_path: Path) -> None:
         user_file,
         config_file,
     }
+
+
+def test_discover_files_nonexistent_directory(
+    tmp_path: Path,
+) -> None:
+    """Raise RepositoryPathError when the repository directory is missing."""
+
+    missing_path = tmp_path / "does_not_exist"
+
+    with pytest.raises(
+        RepositoryPathError,
+        match="Repository directory not found",
+    ):
+        discover_files(missing_path)
+
+
+def test_discover_files_path_is_a_file(
+    tmp_path: Path,
+) -> None:
+    """Raise RepositoryPathError when the supplied path is a file."""
+
+    file_path = tmp_path / "README.md"
+    file_path.write_text("hello", encoding="utf-8")
+
+    with pytest.raises(RepositoryPathError):
+        discover_files(file_path)
