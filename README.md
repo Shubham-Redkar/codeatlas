@@ -217,16 +217,27 @@ flowchart TD
 ```text
 codeatlas/
 ├── backend/
+│   ├── alembic/
+│   │   └── versions/
 │   ├── app/
 │   │   ├── api/
+│   │   ├── core/
 │   │   ├── database/
 │   │   ├── graph/
 │   │   ├── ingestion/
 │   │   ├── llm/
 │   │   ├── parser/
 │   │   ├── retrieval/
+│   │   ├── schemas/
 │   │   ├── services/
 │   │   └── main.py
+│   ├── tests/
+│   │   ├── api/
+│   │   ├── database/
+│   │   ├── graph/
+│   │   ├── ingestion/
+│   │   ├── parser/
+│   │   └── services/
 │   ├── pyproject.toml
 │   └── uv.lock
 ├── frontend/
@@ -286,10 +297,16 @@ flowchart LR
 ### Phase 3 — Code Intelligence
 
 - [x] Tree-sitter integration
+- [x] Python, JavaScript, and TypeScript parsing
 - [x] AST extraction
-- [x] Symbol extraction
-- [x] Import analysis
-- [x] Function and class relationships
+- [x] Symbol extraction for supported syntax
+- [x] Import extraction
+- [x] Function and class relationships extraction
+- [x] Symbol persistence in PostgreSQL
+- [x] Replace symbols when source files change
+- [x] Preserve symbols for unchanged files
+- [x] Remove symbols when source files are deleted
+- [x] Automated parser, repository, and indexing tests  
 
 ### Phase 4 — Code Graph
 
@@ -460,9 +477,15 @@ flowchart TD
 
 ## Current Status
 
-> 🚧 **Early development**
+> 🚧 **Early development — Phase 2 implemented**
 
-The project is currently in the backend foundation stage. Core code intelligence, retrieval, and AI features are being implemented incrementally.
+CodeAtlas currently supports repository ingestion, incremental file indexing, and AST-based code analysis for Python, JavaScript, and TypeScript.
+
+The parser extracts symbols, imports, and supported code relationships. Extracted symbols are persisted in PostgreSQL and synchronized when files are added, changed, or deleted.
+
+**Next milestone:** Phase 3 — Code Graph construction, including dependency relationships, graph traversal, and impact-analysis primitives.
+
+Semantic retrieval, LLM reasoning, and the frontend remain future milestones.
 
 ---
 
