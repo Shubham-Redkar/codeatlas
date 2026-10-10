@@ -1,3 +1,4 @@
+from ..core.exceptions import UnsupportedLanguageError
 from .ast import extract_ast
 from .imports import Import, extract_imports
 from .relationships import (
@@ -27,6 +28,7 @@ __all__ = [
     "SymbolKind",
     "extract_symbols",
     "SupportedLanguage",
+    "UnsupportedLanguageError",
     "create_parser",
     "parse_source",
 ]
