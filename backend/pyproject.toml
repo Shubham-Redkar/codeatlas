@@ -16,6 +16,7 @@ dependencies = [
     "tree-sitter>=0.26.0",
     "tree-sitter-javascript>=0.25.0",
     "tree-sitter-python>=0.25.0",
+    "tree-sitter-typescript>=0.23.2",
     "uvicorn>=0.54.0",
 ]
 
@@ -24,6 +25,7 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.16.10",
 ]
 

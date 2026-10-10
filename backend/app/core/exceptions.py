@@ -12,3 +12,7 @@ class GitCloneError(GitError):
 
 class RepositoryPathError(CodeAtlasError):
     """Raised when a repository path is invalid."""
+
+
+class UnsupportedLanguageError(CodeAtlasError, ValueError):
+    """Raised when a language is not supported by the parser."""

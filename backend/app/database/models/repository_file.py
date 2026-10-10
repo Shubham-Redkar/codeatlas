@@ -10,6 +10,7 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .repository import Repository
+    from .symbol import Symbol
 
 
 class RepositoryFile(Base):
@@ -77,4 +78,9 @@ class RepositoryFile(Base):
 
     repository: Mapped["Repository"] = relationship(
         back_populates="files",
+    )
+
+    symbols: Mapped[list["Symbol"]] = relationship(
+        back_populates="repository_file",
+        cascade="all, delete-orphan",
     )
