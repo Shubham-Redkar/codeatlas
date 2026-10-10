@@ -120,6 +120,8 @@ repositories/
 repos/
 .tmp/
 tmp/
+!backend/app/database/repositories
+!backend/tests/database/repositories
 
 # Parsed/generated codebase data
 data/
@@ -168,6 +170,8 @@ Desktop.ini
 
 coverage/
 htmlcov/
+.coverage
+.coverage.*
 .pytest_cache/
 
 
