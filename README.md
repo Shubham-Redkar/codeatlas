@@ -310,10 +310,17 @@ flowchart LR
 
 ### Phase 4 — Code Graph
 
-- [ ] Dependency graph construction
-- [ ] Symbol relationships
-- [ ] Graph traversal
-- [ ] Impact analysis primitives
+- [x] Dependency graph construction
+- [x] File dependency persistence
+- [x] Symbol relationship extraction and persistence
+- [x] Cross-file Python function-call resolution
+- [x] Direct and transitive graph traversal
+- [x] Cycle-safe graph traversal
+- [x] Symbol impact analysis
+- [x] Repository-scoped graph queries
+- [x] Incremental relationship rebuilding
+- [x] Dependency graph API
+- [x] Automated graph, repository, API, and indexing tests
 
 ### Phase 5 — Semantic Retrieval
 
@@ -477,15 +484,33 @@ flowchart TD
 
 ## Current Status
 
-> 🚧 **Early development — Phase 2 implemented**
+> 🚧 **Early development — Phase 4 implemented**
 
-CodeAtlas currently supports repository ingestion, incremental file indexing, and AST-based code analysis for Python, JavaScript, and TypeScript.
+CodeAtlas currently supports repository ingestion, incremental indexing, and AST-based code analysis for Python, JavaScript, and TypeScript.
 
-The parser extracts symbols, imports, and supported code relationships. Extracted symbols are persisted in PostgreSQL and synchronized when files are added, changed, or deleted.
+The indexing pipeline extracts and persists symbols, imports, and supported code relationships. It also constructs file dependency graphs and symbol relationship graphs.
 
-**Next milestone:** Phase 3 — Code Graph construction, including dependency relationships, graph traversal, and impact-analysis primitives.
+### Implemented Capabilities
 
-Semantic retrieval, LLM reasoning, and the frontend remain future milestones.
+- Repository ingestion and incremental indexing.
+- AST-based symbol and import extraction.
+- File dependency graph construction and persistence.
+- Symbol relationship extraction and persistence.
+- Cross-file Python function-call resolution.
+- Direct and transitive graph traversal.
+- Symbol impact analysis to identify potentially affected callers.
+- Repository-scoped graph queries and dependency graph APIs.
+
+The Code Graph implementation is covered by automated tests, including cross-file relationship resolution, incremental consistency, and end-to-end impact analysis.
+
+**Latest verification:**
+- 172 automated tests passing.
+- Ruff: All checks passed.
+- Pyright: 0 errors, 0 warnings, 0 informations.
+
+**Next milestone:** Phase 5 — Semantic Retrieval, including code-aware chunking, embedding generation, vector search, and hybrid retrieval.
+
+LLM reasoning, frontend development, and evaluation remain future milestones.
 
 ---
 
@@ -493,4 +518,4 @@ Semantic retrieval, LLM reasoning, and the frontend remain future milestones.
 
 This project is licensed under the MIT License.
 
-See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE) for details.     
