@@ -10,6 +10,7 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .repository_file import RepositoryFile
+    from .symbol_relationship import SymbolRelationship
 
 
 class Symbol(Base):
@@ -97,4 +98,16 @@ class Symbol(Base):
 
     repository_file: Mapped["RepositoryFile"] = relationship(
         back_populates="symbols",
+    )
+
+    outgoing_relationships: Mapped[list["SymbolRelationship"]] = relationship(
+        back_populates="source_symbol",
+        foreign_keys="SymbolRelationship.source_symbol_id",
+        cascade="all, delete-orphan",
+    )
+
+    incoming_relationships: Mapped[list["SymbolRelationship"]] = relationship(
+        back_populates="target_symbol",
+        foreign_keys="SymbolRelationship.target_symbol_id",
+        cascade="all, delete-orphan",
     )

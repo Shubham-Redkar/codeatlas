@@ -5,8 +5,9 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models import Repository, RepositoryFile
+from app.database.models import FileDependency, Repository, RepositoryFile
 from app.database.models import Symbol as SymbolRecord
+from app.graph import DependencyGraph
 from app.ingestion.indexing import FileChangeType, calculate_file_hash
 from app.services.indexing import index_repository
 
@@ -403,3 +404,453 @@ async def test_index_repository_skips_symbol_extraction_for_unsupported_language
         )
     )
     assert list(result.scalars()) == []
+
+
+@pytest.mark.asyncio
+async def test_index_repository_extracts_imports(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    """Extract imports when indexing a new Python file."""
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+    source_file = source_directory / "main.py"
+    source_file.write_text(
+        "from app.services import indexing\n",
+        encoding="utf-8",
+    )
+
+    with patch("app.services.indexing.extract_imports") as extract_imports_mock:
+        await index_repository(
+            session=db_session,
+            repository=repository,
+            repository_path=tmp_path,
+        )
+
+    extract_imports_mock.assert_called_once()
+    args, _ = extract_imports_mock.call_args
+    assert args[1] == "python"
+
+
+@pytest.mark.asyncio
+async def test_index_repository_builds_dependency_graph(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    """Persist dependency edges when indexing Python imports."""
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+
+    (source_directory / "helpers.py").write_text(
+        "def helper():\n    pass\n",
+        encoding="utf-8",
+    )
+    (source_directory / "main.py").write_text(
+        "from src import helpers\n",
+        encoding="utf-8",
+    )
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(
+        select(RepositoryFile).where(RepositoryFile.repository_id == repository.id)
+    )
+    files_by_path = {repository_file.path: repository_file for repository_file in result.scalars()}
+
+    result = await db_session.execute(select(FileDependency))
+    dependencies = list(result.scalars())
+
+    assert len(dependencies) == 1
+    assert dependencies[0].source_file_id == files_by_path["src/main.py"].id
+    assert dependencies[0].target_file_id == files_by_path["src/helpers.py"].id
+
+
+@pytest.mark.asyncio
+async def test_index_repository_includes_unchanged_files_in_graph(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    """Include imports from unchanged files when building the dependency graph."""
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+
+    helper_file = source_directory / "helpers.py"
+    helper_file.write_text(
+        "def helper():\n    pass\n",
+        encoding="utf-8",
+    )
+    main_file = source_directory / "main.py"
+    main_file.write_text(
+        "from src import helpers\n",
+        encoding="utf-8",
+    )
+
+    db_session.add(
+        RepositoryFile(
+            repository_id=repository.id,
+            path="src/main.py",
+            content_hash=calculate_file_hash(main_file),
+            size_bytes=main_file.stat().st_size,
+            language="python",
+        )
+    )
+    await db_session.commit()
+
+    with patch(
+        "app.services.indexing.build_python_dependency_graph",
+        return_value=DependencyGraph(dependencies=()),
+    ) as build_graph_mock:
+        changes = await index_repository(
+            session=db_session,
+            repository=repository,
+            repository_path=tmp_path,
+        )
+
+    assert (
+        next(change for change in changes if change.path == "src/main.py").change_type
+        is FileChangeType.UNCHANGED
+    )
+
+    imports_by_file = build_graph_mock.call_args.kwargs["imports_by_file"]
+    assert "src/main.py" in imports_by_file
+
+
+@pytest.mark.asyncio
+async def test_index_repository_removes_dependencies_for_deleted_file(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    """Remove dependency edges when a referenced file is deleted."""
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+
+    helper_file = source_directory / "helpers.py"
+    helper_file.write_text(
+        "def helper():\n    pass\n",
+        encoding="utf-8",
+    )
+    main_file = source_directory / "main.py"
+    main_file.write_text(
+        "from src import helpers\n",
+        encoding="utf-8",
+    )
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(select(FileDependency))
+    assert len(list(result.scalars())) == 1
+    await db_session.commit()
+
+    helper_file.unlink()
+
+    changes = await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    assert any(
+        change.path == "src/helpers.py" and change.change_type is FileChangeType.DELETED
+        for change in changes
+    )
+
+    result = await db_session.execute(select(FileDependency))
+    assert list(result.scalars()) == []
+
+
+@pytest.mark.asyncio
+async def test_index_repository_persists_symbol_relationships(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    from app.database.models import SymbolRelationship
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+    source_file = source_directory / "main.py"
+    source_file.write_text(
+        "def create_user():\n    save_user()\n\ndef save_user():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(
+        select(SymbolRelationship)
+        .join(
+            SymbolRecord,
+            SymbolRelationship.source_symbol_id == SymbolRecord.id,
+        )
+        .where(
+            SymbolRecord.name == "create_user",
+            SymbolRelationship.kind == "calls",
+        )
+    )
+    relationships = list(result.scalars().all())
+
+    assert len(relationships) == 1
+    assert relationships[0].line == 2
+
+    source_result = await db_session.execute(
+        select(SymbolRecord).where(SymbolRecord.id == relationships[0].source_symbol_id)
+    )
+    source_symbol = source_result.scalar_one()
+
+    target_result = await db_session.execute(
+        select(SymbolRecord).where(SymbolRecord.id == relationships[0].target_symbol_id)
+    )
+    target_symbol = target_result.scalar_one()
+
+    assert source_symbol.name == "create_user"
+    assert target_symbol.name == "save_user"
+
+
+@pytest.mark.asyncio
+async def test_index_repository_persists_cross_file_symbol_relationships(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    from app.database.models import SymbolRelationship
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+
+    routes_file = source_directory / "routes.py"
+    routes_file.write_text(
+        "from src.services import save_user\n\ndef create_user():\n    save_user()\n",
+        encoding="utf-8",
+    )
+
+    services_file = source_directory / "services.py"
+    services_file.write_text(
+        "def save_user():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(
+        select(SymbolRelationship)
+        .join(
+            SymbolRecord,
+            SymbolRelationship.source_symbol_id == SymbolRecord.id,
+        )
+        .where(
+            SymbolRecord.name == "create_user",
+            SymbolRelationship.kind == "calls",
+        )
+    )
+    relationships = list(result.scalars().all())
+
+    assert len(relationships) == 1
+
+    source_result = await db_session.execute(
+        select(SymbolRecord).where(
+            SymbolRecord.id == relationships[0].source_symbol_id,
+        )
+    )
+    source_symbol = source_result.scalar_one()
+
+    target_result = await db_session.execute(
+        select(SymbolRecord).where(
+            SymbolRecord.id == relationships[0].target_symbol_id,
+        )
+    )
+    target_symbol = target_result.scalar_one()
+
+    assert source_symbol.name == "create_user"
+    assert target_symbol.name == "save_user"
+    assert source_symbol.repository_file_id != target_symbol.repository_file_id
+
+
+@pytest.mark.asyncio
+async def test_index_repository_removes_stale_symbol_relationships(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    from app.database.models import SymbolRelationship
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+    source_file = source_directory / "main.py"
+
+    source_file.write_text(
+        "def create_user():\n    save_user()\n\ndef save_user():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(
+        select(SymbolRelationship).where(
+            SymbolRelationship.kind == "calls",
+        )
+    )
+    assert len(list(result.scalars().all())) == 1
+
+    await db_session.commit()
+
+    source_file.write_text(
+        "def create_user():\n    pass\n\ndef save_user():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(
+        select(SymbolRelationship).where(
+            SymbolRelationship.kind == "calls",
+        )
+    )
+    assert list(result.scalars().all()) == []
+
+
+@pytest.mark.asyncio
+async def test_index_repository_rebuilds_cross_file_relationships_after_target_changes(
+    db_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    from app.database.models import SymbolRelationship
+
+    source_directory = tmp_path / "src"
+    source_directory.mkdir()
+
+    routes_file = source_directory / "routes.py"
+    routes_file.write_text(
+        "from src.services import save_user\n\ndef create_user():\n    save_user()\n",
+        encoding="utf-8",
+    )
+
+    services_file = source_directory / "services.py"
+    services_file.write_text(
+        "def save_user():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+    await db_session.commit()
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    services_file.write_text(
+        "def save_user():\n    return True\n",
+        encoding="utf-8",
+    )
+
+    await index_repository(
+        session=db_session,
+        repository=repository,
+        repository_path=tmp_path,
+    )
+
+    result = await db_session.execute(
+        select(SymbolRelationship)
+        .join(
+            SymbolRecord,
+            SymbolRelationship.source_symbol_id == SymbolRecord.id,
+        )
+        .where(
+            SymbolRecord.name == "create_user",
+            SymbolRelationship.kind == "calls",
+        )
+    )
+
+    relationships = list(result.scalars().all())
+
+    assert len(relationships) == 1

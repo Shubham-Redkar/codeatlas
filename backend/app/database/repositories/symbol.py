@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...parser import Symbol as ParsedSymbol
-from ..models import Symbol
+from ..models import RepositoryFile, Symbol
 
 
 async def replace_symbols(
@@ -40,3 +40,21 @@ async def replace_symbols(
     await session.flush()
 
     return symbol_records
+
+
+async def get_repository_symbols(
+    session: AsyncSession,
+    repository_id: UUID,
+) -> list[Symbol]:
+    """Return all persisted symbols belonging to a repository."""
+    result = await session.execute(
+        select(Symbol)
+        .join(
+            RepositoryFile,
+            Symbol.repository_file_id == RepositoryFile.id,
+        )
+        .where(RepositoryFile.repository_id == repository_id)
+        .order_by(Symbol.start_byte)
+    )
+
+    return list(result.scalars().all())

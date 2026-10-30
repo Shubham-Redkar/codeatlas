@@ -5,7 +5,7 @@ from ...schemas.repositories import (
     RepositoryCreateRequest,
     RepositoryResponse,
 )
-from ...services.repositories import ingest_repository
+from ...services import ingest_repository
 from ..dependencies import SessionDep
 
 router = APIRouter(
