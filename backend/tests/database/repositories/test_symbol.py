@@ -1,10 +1,10 @@
 import pytest
-from app.database.repositories.symbol import replace_symbols
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Repository, RepositoryFile
 from app.database.models import Symbol as SymbolRecord
+from app.database.repositories import get_repository_symbols, replace_symbols
 from app.parser.symbols import Symbol, SymbolKind
 
 
@@ -187,3 +187,77 @@ async def test_replace_symbols_with_empty_list_clears_symbols(
     )
 
     assert list(result.scalars()) == []
+
+
+@pytest.mark.asyncio
+async def test_get_repository_symbols_returns_symbols_from_all_files(
+    db_session: AsyncSession,
+) -> None:
+    repository = Repository(
+        name="CodeAtlas",
+        url="https://github.com/example/codeatlas.git",
+        branch="main",
+    )
+    db_session.add(repository)
+    await db_session.flush()
+
+    first_file = RepositoryFile(
+        repository_id=repository.id,
+        path="src/first.py",
+        content_hash="first-hash",
+        size_bytes=32,
+        language="python",
+    )
+    second_file = RepositoryFile(
+        repository_id=repository.id,
+        path="src/second.py",
+        content_hash="second-hash",
+        size_bytes=32,
+        language="python",
+    )
+    db_session.add_all([first_file, second_file])
+    await db_session.flush()
+
+    await replace_symbols(
+        session=db_session,
+        repository_file_id=first_file.id,
+        symbols=[
+            Symbol(
+                name="create_user",
+                kind=SymbolKind.FUNCTION,
+                start_byte=0,
+                end_byte=20,
+                start_line=1,
+                end_line=2,
+            ),
+        ],
+    )
+
+    await replace_symbols(
+        session=db_session,
+        repository_file_id=second_file.id,
+        symbols=[
+            Symbol(
+                name="save_user",
+                kind=SymbolKind.FUNCTION,
+                start_byte=0,
+                end_byte=20,
+                start_line=1,
+                end_line=2,
+            ),
+        ],
+    )
+
+    persisted = await get_repository_symbols(
+        session=db_session,
+        repository_id=repository.id,
+    )
+
+    assert {symbol.name for symbol in persisted} == {
+        "create_user",
+        "save_user",
+    }
+    assert {symbol.repository_file_id for symbol in persisted} == {
+        first_file.id,
+        second_file.id,
+    }

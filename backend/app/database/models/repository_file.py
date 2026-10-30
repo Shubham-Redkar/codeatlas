@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
+    from .file_dependency import FileDependency
     from .repository import Repository
     from .symbol import Symbol
 
@@ -82,5 +83,17 @@ class RepositoryFile(Base):
 
     symbols: Mapped[list["Symbol"]] = relationship(
         back_populates="repository_file",
+        cascade="all, delete-orphan",
+    )
+
+    outgoing_dependencies: Mapped[list["FileDependency"]] = relationship(
+        back_populates="source_file",
+        foreign_keys="FileDependency.source_file_id",
+        cascade="all, delete-orphan",
+    )
+
+    incoming_dependencies: Mapped[list["FileDependency"]] = relationship(
+        back_populates="target_file",
+        foreign_keys="FileDependency.target_file_id",
         cascade="all, delete-orphan",
     )
